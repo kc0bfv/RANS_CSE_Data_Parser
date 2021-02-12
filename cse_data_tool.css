@@ -1,0 +1,31 @@
+#proj_cust_map_area, #cust_rsgp_map_area, #json_export_area {
+    border: 1px solid black;
+    border-radius: 5px;
+    margin: 20px 2px;
+    padding: 2px;
+    box-sizing: border-box;
+}
+
+.map_form {
+    display: block;
+    border: 1px solid black;
+    border-radius: 5px;
+    margin: 10px 2px;
+    padding: 2px;
+}
+
+.map_form_title {
+    display: block;
+}
+
+#json_export {
+    width: 100%;
+    height: 20em;
+    display: block;
+    box-sizing: border-box;
+}
+
+button, textarea, label {
+    margin: 5px;
+}
+
