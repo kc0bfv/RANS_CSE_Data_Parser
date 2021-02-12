@@ -1,0 +1,23 @@
+</style>
+
+</head>
+<body onload="on_load()">
+
+<input type="file" id="report_file">
+
+<button onclick="save_mappings()">Save Mappings</button>
+
+<div id="proj_cust_map_area">
+</div>
+
+<div id="cust_rsgp_map_area">
+</div>
+
+<button onclick="add_project_to_interface()">Add Project</button>
+<button onclick="add_customer_to_interface()">Add Customer</button>
+<button onclick="add_rsgp_to_interface()">Add Resource Group</button>
+
+<div id="json_export_area">
+<details>
+<summary>Mapping Export as JSON</summary>
+<textarea id="json_export">

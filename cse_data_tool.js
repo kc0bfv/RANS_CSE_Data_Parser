@@ -121,8 +121,7 @@ function handle_report(report) {
         */
 
     // Update in-memory properties with interface data
-    load_proj_cust_map();
-    load_cust_rsgp_map();
+    load_maps_into_mem();
 
     // Validate the report header line
     if( report[REPORT_HEADER_LINE].length != EXPECTED_REPORT_HDR.length ) {
@@ -143,7 +142,11 @@ function handle_report(report) {
     const report_data = report.slice(REPORT_HEADER_LINE + 1);
 
     // Get the resource groups - "567 COG", "81 TRW", "OCO", ...
-    const resource_groups = get_resource_groups();
+    let resource_groups_initial = get_resource_groups();
+    if( resource_groups_initial.length == 0 ) {
+        resource_groups_initial = [null];
+    }
+    const resource_groups = resource_groups_initial;
     // Build the data - an array of resources used by week per resource group
     const resource_usages = resource_groups.map(function(rsc_grp) {
             const rgx = new RegExp(
@@ -232,14 +235,7 @@ function output_file(filename, content) {
     let blob = new Blob([content], { type: "text/csv; charset=utf-8" });
     let url = URL.createObjectURL(blob);
 
-    let anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = filename;
-    
-    let click = document.createEvent("MouseEvents");
-    click.initMouseEvent("click", true, false, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
-
-    anchor.dispatchEvent(click);
+    save_url(url, filename);
 }
 
 function gen_all_weeks(min_time, max_time) {
@@ -384,7 +380,9 @@ function resolve_proj_rsc_grp(proj_name) {
     const cust_name = resolve_proj_cust(proj_name);
     const rsgp_name = window.CSE_GLOB.cust_rsgp_map.get(cust_name);
     if( rsgp_name === undefined && cust_name !== undefined ) {
-        console.error("No mapping for customer: " + cust_name);
+        const err_message = "No mapping for customer: " + cust_name;
+        console.error(err_message);
+        alert(err_message + "\nYou'll want to try this again...");
     }
 
     return rsgp_name;
@@ -395,7 +393,11 @@ function resolve_proj_cust(proj_name) {
         */
     const cust_name = window.CSE_GLOB.proj_cust_map.get(proj_name);
     if( cust_name === undefined ) {
-        console.error("No mapping for project: " + proj_name);
+        const err_message = "No mapping for project: " + proj_name;
+        console.error(err_message);
+        alert(err_message + "\nYou'll want to try this again...");
+
+        add_project_to_interface(proj_name);
     }
 
     return cust_name;
@@ -437,6 +439,11 @@ function load_cust_rsgp_map() {
         }));
 }
 
+function load_maps_into_mem() {
+    load_proj_cust_map();
+    load_cust_rsgp_map();
+}
+
 // For saving the proj / cust mappings, onto the interface, use "rebuild" funcs
 
 function ensure_known_projs_defined() {
@@ -457,6 +464,12 @@ function ensure_known_rsgps_defined() {
     }
 }
 
+function ensure_knowns_defined() {
+    ensure_known_projs_defined();
+    ensure_known_custs_defined();
+    ensure_known_rsgps_defined();
+}
+
 function reset_known_proj_cust_rsgp() {
     /* Reset the known projects, customers, and resource groups, so they can
        be redefined
@@ -466,12 +479,19 @@ function reset_known_proj_cust_rsgp() {
     window.CSE_GLOB.known_rsgps = undefined;
 }
 
-function add_project_to_interface() {
-    ensure_known_projs_defined();
+function add_project_to_interface(proj_name) {
+    load_maps_into_mem();
+    ensure_knowns_defined();
 
-    const proj_name = prompt("New project name? ");
-    if( proj_name === null ) {
-        return;
+    if( Array.from( window.CSE_GLOB.known_custs ).length === 0 ) {
+        add_customer_to_interface();
+    }
+
+    if( proj_name === undefined ) {
+        proj_name = prompt("New project name? ");
+        if( proj_name === null ) {
+            return;
+        }
     }
     window.CSE_GLOB.known_projs.add(proj_name);
 
@@ -479,7 +499,12 @@ function add_project_to_interface() {
 }
 
 function add_customer_to_interface() {
-    ensure_known_custs_defined();
+    load_maps_into_mem();
+    ensure_knowns_defined();
+
+    if( Array.from( window.CSE_GLOB.known_rsgps ).length === 0 ) {
+        add_rsgp_to_interface();
+    }
 
     const cust_name = prompt("New customer name? ");
     if( cust_name === null ) {
@@ -491,7 +516,8 @@ function add_customer_to_interface() {
 }
 
 function add_rsgp_to_interface() {
-    ensure_known_rsgps_defined();
+    load_maps_into_mem();
+    ensure_knowns_defined();
 
     const rsgp_name = prompt("New resource group name? ");
     if( rsgp_name === null ) {
@@ -513,8 +539,7 @@ function build_proj_cust_rsgp_map_interface() {
 function rebuild_proj_cust_map() {
     // First time we run this, before manually adding any customers and projects, we
     // must define these globals
-    ensure_known_projs_defined();
-    ensure_known_custs_defined();
+    ensure_knowns_defined();
 
     // Build the input forms
     const projs = window.CSE_GLOB.known_projs;
@@ -532,8 +557,7 @@ function rebuild_proj_cust_map() {
 function rebuild_cust_rsgp_map() {
     // First time we run this, before manually adding any customers and projects, we
     // must define these globals
-    ensure_known_custs_defined();
-    ensure_known_rsgps_defined();
+    ensure_knowns_defined();
 
     // Build the input forms
     const custs = window.CSE_GLOB.known_custs;
@@ -621,8 +645,7 @@ function dump_maps_to_json() {
     /*  Dump the in-memory maps into the JSON export area
         */
     // Update in-memory properties with interface data
-    load_proj_cust_map();
-    load_cust_rsgp_map();
+    load_maps_into_mem();
 
     const json_elem = document.getElementById(JSON_EXPORT_ID);
     const json_obj = {
